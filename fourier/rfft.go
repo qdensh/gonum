@@ -786,8 +786,8 @@ func radb2(ido, l1 int, cc, ch, wa1 []float64) {
 		}
 	}
 	for k := 0; k < l1; k++ {
-		ch3.set(ido-1, k, 0, cc3.at(ido-1, 0, k)+cc3.at(ido-1, 0, k))
-		ch3.set(ido-1, k, 1, -(cc3.at(0, 1, k) + cc3.at(0, 1, k)))
+		ch3.set(ido-1, k, 0, 2*cc3.at(ido-1, 0, k))
+		ch3.set(ido-1, k, 1, -2*cc3.at(0, 1, k))
 	}
 }
 
