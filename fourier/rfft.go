@@ -1129,7 +1129,7 @@ func radbg(ido, ip, l1, idl1 int, cc, c1, c2, ch, ch2, wa []float64) {
 			for k := 0; k < l1; k++ {
 				idij := is
 				for i := 2; i < ido; i += 2 {
-					idij = idij + 2
+					idij += 2
 					c13.set(i-1, k, j, wa[idij-1]*ch3.at(i-1, k, j)-wa[idij]*ch3.at(i, k, j))
 					c13.set(i, k, j, wa[idij-1]*ch3.at(i, k, j)+wa[idij]*ch3.at(i-1, k, j))
 				}
