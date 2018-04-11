@@ -1239,6 +1239,274 @@ func (Implementation) Zhpr2(uplo blas.Uplo, n int, alpha complex128, x []complex
 	}
 }
 
+// Ztbmv performs one of the matrix-vector operations
+//  x = A * x    if trans = blas.NoTrans
+//  x = A^T * x  if trans = blas.Trans
+//  x = A^H * x  if trans = blas.ConjTrans
+// where x is an n element vector and A is an n×n triangular band matrix, with
+// (k+1) diagonals.
+func (Implementation) Ztbmv(uplo blas.Uplo, trans blas.Transpose, diag blas.Diag, n, k int, ab []complex128, ldab int, x []complex128, incX int) {
+	if uplo != blas.Upper && uplo != blas.Lower {
+		panic(badUplo)
+	}
+	if trans != blas.NoTrans && trans != blas.Trans && trans != blas.ConjTrans {
+		panic(badTranspose)
+	}
+	if diag != blas.Unit && diag != blas.NonUnit {
+		panic(badDiag)
+	}
+	checkZtbMatrix('A', n, k, ab, ldab)
+	checkZVector('x', n, x, incX)
+
+	if n == 0 {
+		return
+	}
+
+	// Set up start index in X.
+	var kx int
+	if incX < 0 {
+		kx = (1 - n) * incX
+	}
+
+	switch trans {
+	case blas.NoTrans:
+		if uplo == blas.Upper {
+			if incX == 1 {
+				for i := 0; i < n; i++ {
+					u := min(1+k, n-i)
+					aRow := ab[i*ldab:]
+					xtmp := x[i:]
+					sum := xtmp[0]
+					if diag == blas.NonUnit {
+						sum *= aRow[0]
+					}
+					for j := 1; j < u; j++ {
+						sum += xtmp[j] * aRow[j]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx
+				for i := 0; i < n; i++ {
+					u := min(1+k, n-i)
+					aRow := ab[i*ldab:]
+					sum := x[ix]
+					if diag == blas.NonUnit {
+						sum *= aRow[0]
+					}
+					jx := ix + incX
+					for j := 1; j < u; j++ {
+						sum += x[jx] * aRow[j]
+						jx += incX
+					}
+					x[ix] = sum
+					ix += incX
+				}
+			}
+		} else {
+			if incX == 1 {
+				for i := n - 1; i >= 0; i-- {
+					l := max(0, k-i)
+					aRow := ab[i*ldab:]
+					var sum complex128
+					for j := l; j < k; j++ {
+						sum += x[i-k+j] * aRow[j]
+					}
+					if diag == blas.NonUnit {
+						sum += x[i] * aRow[k]
+					} else {
+						sum += x[i]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx + (n-1)*incX
+				for i := n - 1; i >= 0; i-- {
+					l := max(0, k-i)
+					aRow := ab[i*ldab:]
+					var sum complex128
+					jx := ix - k*incX + l*incX
+					for j := l; j < k; j++ {
+						sum += x[jx] * aRow[j]
+						jx += incX
+					}
+					if diag == blas.NonUnit {
+						sum += x[ix] * aRow[k]
+					} else {
+						sum += x[ix]
+					}
+					x[ix] = sum
+					ix -= incX
+				}
+			}
+		}
+	case blas.Trans:
+		if uplo == blas.Upper {
+			if incX == 1 {
+				for i := n - 1; i >= 0; i-- {
+					u := k + 1
+					if i < u {
+						u = i + 1
+					}
+					var sum complex128
+					for j := 1; j < u; j++ {
+						sum += x[i-j] * ab[(i-j)*ldab+j]
+					}
+					if diag == blas.NonUnit {
+						sum += x[i] * ab[i*ldab]
+					} else {
+						sum += x[i]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx + (n-1)*incX
+				for i := n - 1; i >= 0; i-- {
+					u := k + 1
+					if i < u {
+						u = i + 1
+					}
+					var sum complex128
+					jx := incX
+					for j := 1; j < u; j++ {
+						sum += x[ix-jx] * ab[(i-j)*ldab+j]
+						jx += incX
+					}
+					if diag == blas.NonUnit {
+						sum += x[ix] * ab[i*ldab]
+					} else {
+						sum += x[ix]
+					}
+					x[ix] = sum
+					ix -= incX
+				}
+			}
+		} else {
+			if incX == 1 {
+				for i := 0; i < n; i++ {
+					u := k
+					if i+k >= n {
+						u = n - i - 1
+					}
+					var sum complex128
+					for j := 0; j < u; j++ {
+						sum += x[i+j+1] * ab[(i+j+1)*ldab+k-j-1]
+					}
+					if diag == blas.NonUnit {
+						sum += x[i] * ab[i*ldab+k]
+					} else {
+						sum += x[i]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx
+				for i := 0; i < n; i++ {
+					u := k
+					if i+k >= n {
+						u = n - i - 1
+					}
+					var sum complex128
+					jx := 0
+					for j := 0; j < u; j++ {
+						sum += x[ix+jx+incX] * ab[(i+j+1)*ldab+k-j-1]
+						jx += incX
+					}
+					if diag == blas.NonUnit {
+						sum += x[ix] * ab[i*ldab+k]
+					} else {
+						sum += x[ix]
+					}
+					x[ix] = sum
+					ix += incX
+				}
+			}
+		}
+	case blas.ConjTrans:
+		if uplo == blas.Upper {
+			if incX == 1 {
+				for i := n - 1; i >= 0; i-- {
+					u := k + 1
+					if i < u {
+						u = i + 1
+					}
+					var sum complex128
+					for j := 1; j < u; j++ {
+						sum += x[i-j] * cmplx.Conj(ab[(i-j)*ldab+j])
+					}
+					if diag == blas.NonUnit {
+						sum += x[i] * cmplx.Conj(ab[i*ldab])
+					} else {
+						sum += x[i]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx + (n-1)*incX
+				for i := n - 1; i >= 0; i-- {
+					u := k + 1
+					if i < u {
+						u = i + 1
+					}
+					var sum complex128
+					jx := incX
+					for j := 1; j < u; j++ {
+						sum += x[ix-jx] * cmplx.Conj(ab[(i-j)*ldab+j])
+						jx += incX
+					}
+					if diag == blas.NonUnit {
+						sum += x[ix] * cmplx.Conj(ab[i*ldab])
+					} else {
+						sum += x[ix]
+					}
+					x[ix] = sum
+					ix -= incX
+				}
+			}
+		} else {
+			if incX == 1 {
+				for i := 0; i < n; i++ {
+					u := k
+					if i+k >= n {
+						u = n - i - 1
+					}
+					var sum complex128
+					for j := 0; j < u; j++ {
+						sum += x[i+j+1] * cmplx.Conj(ab[(i+j+1)*ldab+k-j-1])
+					}
+					if diag == blas.NonUnit {
+						sum += x[i] * cmplx.Conj(ab[i*ldab+k])
+					} else {
+						sum += x[i]
+					}
+					x[i] = sum
+				}
+			} else {
+				ix := kx
+				for i := 0; i < n; i++ {
+					u := k
+					if i+k >= n {
+						u = n - i - 1
+					}
+					var sum complex128
+					jx := 0
+					for j := 0; j < u; j++ {
+						sum += x[ix+jx+incX] * cmplx.Conj(ab[(i+j+1)*ldab+k-j-1])
+						jx += incX
+					}
+					if diag == blas.NonUnit {
+						sum += x[ix] * cmplx.Conj(ab[i*ldab+k])
+					} else {
+						sum += x[ix]
+					}
+					x[ix] = sum
+					ix += incX
+				}
+			}
+		}
+	}
+}
+
 // Ztpmv performs one of the matrix-vector operations
 //  x = A * x    if trans = blas.NoTrans
 //  x = A^T * x  if trans = blas.Trans
