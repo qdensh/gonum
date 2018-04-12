@@ -6,6 +6,7 @@ package fourier_test
 
 import (
 	"fmt"
+	"math"
 	"math/cmplx"
 
 	"gonum.org/v1/gonum/floats"
@@ -35,6 +36,37 @@ func ExampleFFT_FFT() {
 	// freq=0.5 cycles/period, magnitude=9, phase=0
 }
 
+func ExampleFFT_FFT_tone() {
+	// Tone is a set of samples over a second of a pure Middle C.
+	const (
+		mC      = 261.625565 // Hz
+		samples = 44100
+	)
+	tone := make([]float64, samples)
+	for i := range tone {
+		tone[i] = math.Sin(mC * 2 * math.Pi * float64(i) / samples)
+	}
+
+	// Initialize an FFT and perform the analysis.
+	fft := fourier.NewFFT(samples)
+	coeff := fft.FFT(nil, tone)
+
+	var maxFreq, magnitude, mean float64
+	for i, c := range coeff {
+		m := cmplx.Abs(c)
+		mean += m
+		if m > magnitude {
+			magnitude = m
+			maxFreq = fft.Freq(i) * samples
+		}
+	}
+	fmt.Printf("freq=%v Hz, magnitude=%v, mean=%v\n", maxFreq, magnitude, mean/samples)
+
+	// Output:
+	//
+	// freq=262 Hz, magnitude=17296.195519181776, mean=2.783457755654771
+}
+
 func ExampleCmplxFFT_FFT() {
 	// Period is a set of samples over a given period.
 	period := []complex128{1, 0, 2, 0, 4, 0, 2, 0}
@@ -45,7 +77,7 @@ func ExampleCmplxFFT_FFT() {
 
 	for i := range coeff {
 		// Center the spectrum.
-		i = fft.Shift(i)
+		i = fft.ShiftIdx(i)
 
 		fmt.Printf("freq=%v cycles/period, magnitude=%v, phase=%.4g\n",
 			fft.Freq(i), cmplx.Abs(coeff[i]), cmplx.Phase(coeff[i]))
@@ -64,6 +96,10 @@ func ExampleCmplxFFT_FFT() {
 }
 
 func Example_fFT2() {
+	// This example shows how to perform a 2D fourier transform
+	// on an image. The transform identifies the lines present
+	// in the image.
+
 	// Image is a set of diagonal lines.
 	image := mat.NewDense(11, 11, []float64{
 		0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
@@ -164,7 +200,7 @@ func Example_cmplxFFT2() {
 		cfft.FFT(column, column)
 		for i, v := range column {
 			// Center the frequencies.
-			freqs.Set(cfft.Unshift(i), cfft.Unshift(j), floats.Round(cmplx.Abs(v), 1))
+			freqs.Set(cfft.UnshiftIdx(i), cfft.UnshiftIdx(j), floats.Round(cmplx.Abs(v), 1))
 		}
 	}
 

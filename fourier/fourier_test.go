@@ -199,8 +199,8 @@ func TestCmplxFFT(t *testing.T) {
 			fft.Reset(len(test.index))
 			got := make([]int, len(test.index))
 			for i := range test.index {
-				got[i] = test.index[fft.Shift(i)]
-				su := fft.Unshift(fft.Shift(i))
+				got[i] = test.index[fft.ShiftIdx(i)]
+				su := fft.UnshiftIdx(fft.ShiftIdx(i))
 				if su != i {
 					t.Errorf("unexpected result for unshift(shift(%d)) with length %d:\ngot: %d\nwant:%d",
 						i, len(test.index), su, i)

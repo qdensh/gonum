@@ -24,7 +24,7 @@ func NewFFT(n int) *FFT {
 }
 
 // Len returns the length of the acceptable input.
-func (t *FFT) Len() int { return len(t.work) / 2 }
+func (t *FFT) Len() int { return len(t.real) }
 
 // Reset reinitializes the FFT for work on sequences of length n.
 func (t *FFT) Reset(n int) {
@@ -52,7 +52,7 @@ func (t *FFT) FFT(dst []complex128, seq []float64) []complex128 {
 	}
 	if dst == nil {
 		dst = make([]complex128, t.Len()/2+1)
-	} else if len(dst) != len(seq)/2+1 {
+	} else if len(dst) != t.Len()/2+1 {
 		panic("fourier: destination length mismatch")
 	}
 	copy(t.real, seq)
@@ -119,7 +119,7 @@ func (t *FFT) Freq(i int) float64 {
 	return step * float64(i)
 }
 
-// CmplxFFT implements Fast Fourier Transform and its inverse for real sequences.
+// CmplxFFT implements Fast Fourier Transform and its inverse for complex sequences.
 type CmplxFFT struct {
 	work []float64
 	ifac [15]int
@@ -224,12 +224,12 @@ func (t *CmplxFFT) Freq(i int) float64 {
 	return step * float64(i-t.Len())
 }
 
-// Shift returns returns a shifted index into a slice of
+// ShiftIdx returns returns a shifted index into a slice of
 // coefficients returned by the CmplxFFT so that indexing
 // into the coefficients places the zero frequency component
-// at the center of the spectrum. Shift will panic if i is
+// at the center of the spectrum. ShiftIdx will panic if i is
 // negative or greater than or equal to t.Len().
-func (t *CmplxFFT) Shift(i int) int {
+func (t *CmplxFFT) ShiftIdx(i int) int {
 	if i < 0 || t.Len() <= i {
 		panic("fourier: index out of range")
 	}
@@ -240,9 +240,9 @@ func (t *CmplxFFT) Shift(i int) int {
 	return i - h
 }
 
-// Unshift returns inverse of Shift. Unshift will panic if i is
+// UnshiftIdx returns inverse of ShiftIdx. UnshiftIdx will panic if i is
 // negative or greater than or equal to t.Len().
-func (t *CmplxFFT) Unshift(i int) int {
+func (t *CmplxFFT) UnshiftIdx(i int) int {
 	if i < 0 || t.Len() <= i {
 		panic("fourier: index out of range")
 	}
