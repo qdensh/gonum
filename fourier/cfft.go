@@ -235,6 +235,7 @@ func cfftb(n int, r, work []float64, ifac []int) {
 	cfft1(n, r[:2*n], work[:2*n], work[2*n:4*n], ifac[:15], 1)
 }
 
+// cfft1 implements cfftf1 and cfftb1 depending on sign.
 func cfft1(n int, c, ch, wa []float64, ifac []int, sign float64) {
 	nf := ifac[1]
 	na := false
@@ -306,6 +307,7 @@ func cfft1(n int, c, ch, wa []float64, ifac []int, sign float64) {
 	}
 }
 
+// pass2 implements passf2 and passb2 depending on sign.
 func pass2(ido, l1 int, cc, ch, wa1 []float64, sign float64) {
 	cc3 := newThreeArray(ido, 2, l1, cc)
 	ch3 := newThreeArray(ido, l1, 2, ch)
@@ -331,6 +333,7 @@ func pass2(ido, l1 int, cc, ch, wa1 []float64, sign float64) {
 	}
 }
 
+// pass3 implements passf3 and passb3 depending on sign.
 func pass3(ido, l1 int, cc, ch, wa1, wa2 []float64, sign float64) {
 	const (
 		taur = -0.5
@@ -379,6 +382,7 @@ func pass3(ido, l1 int, cc, ch, wa1, wa2 []float64, sign float64) {
 	}
 }
 
+// pass4 implements passf4 and passb4 depending on sign.
 func pass4(ido, l1 int, cc, ch, wa1, wa2, wa3 []float64, sign float64) {
 	cc3 := newThreeArray(ido, 4, l1, cc)
 	ch3 := newThreeArray(ido, l1, 4, ch)
@@ -432,6 +436,7 @@ func pass4(ido, l1 int, cc, ch, wa1, wa2, wa3 []float64, sign float64) {
 	}
 }
 
+// pass5 implements passf5 and passb5 depending on sign.
 func pass5(ido, l1 int, cc, ch, wa1, wa2, wa3, wa4 []float64, sign float64) {
 	const (
 		tr11 = 0.309016994374947
@@ -514,6 +519,7 @@ func pass5(ido, l1 int, cc, ch, wa1, wa2, wa3, wa4 []float64, sign float64) {
 	}
 }
 
+// pass implements passf and passb depending on sign.
 func pass(ido, ip, l1, idl1 int, cc, c1, c2, ch, ch2, wa []float64, sign float64) (nac bool) {
 	cc3 := newThreeArray(ido, ip, l1, cc)
 	c13 := newThreeArray(ido, l1, ip, c1)
